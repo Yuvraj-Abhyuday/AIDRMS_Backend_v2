@@ -1,0 +1,17 @@
+/server
+│── /src
+│   ├── /routes
+│   │   ├── index.ts        # Main router file
+│   │   ├── user.routes.ts  # Example router (Users)
+│   │   ├── alert.routes.ts # Example router (Alerts)
+│   ├── /controllers
+│   │   ├── user.controller.ts  # User controller
+│   │   ├── alert.controller.ts # Alert controller
+│   ├── /models
+│   │   ├── user.model.ts  # Database model for users
+│   │   ├── alert.model.ts # Database model for alerts
+│   ├── server.ts          # Main entry point
+│── package.json
+│── tsconfig.json
+│── .env
+│── nodemon.json
