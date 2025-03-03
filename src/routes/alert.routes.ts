@@ -1,8 +1,8 @@
 import express from "express";
-import { fetchAlerts } from "../controller/alert.controller";
+import { getAlerts } from "../controller/alert.controller";
 
 const router = express.Router();
 
-router.get("/", fetchAlerts);
+router.get("/", getAlerts);
 
 export default router;

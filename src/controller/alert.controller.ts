@@ -1,42 +1,86 @@
+// src/controller/alert.controller.ts
 import { Request, Response } from "express";
+import NDMAAlert from "../models/alert.model";
 import axios from "axios";
 import { parseStringPromise } from "xml2js";
 
-const CAP_API_URL =
-  "https://sachet.ndma.gov.in/cap_public_website/FetchXMLFile?identifier=1740562481896014";
-
-export const fetchAlerts = async (req: Request, res: Response) => {
+export const getAlerts = async (req: Request, res: Response) => {
   try {
-    // Fetch CAP XML data
-    const { data } = await axios.get(CAP_API_URL, { responseType: "text" });
+    // 1) Query the DB for all alerts that contain a link
+    const storedAlerts = await NDMAAlert.find();
 
-    // Convert XML to JSON
-    const parsedData = await parseStringPromise(data, { explicitArray: false });
+    // 2) For each alert, fetch and parse the CAP XML
+    const enrichedAlerts = await Promise.all(
+      storedAlerts.map(async (doc) => {
+        try {
+          // Fetch the CAP XML from the link
+          const { data } = await axios.get(doc.link, { responseType: "text" });
+          const parsedData = await parseStringPromise(data, {
+            explicitArray: false,
+          });
 
-    // Extract relevant details
-    const alert = parsedData["cap:alert"];
-    const info = alert["cap:info"];
+          // Extract fields from the parsed XML
+          const capAlert = parsedData["cap:alert"];
+          const info = capAlert["cap:info"];
 
-    const structuredAlert = {
-      identifier: alert["cap:identifier"],
-      sender: alert["cap:sender"],
-      sent: alert["cap:sent"],
-      status: alert["cap:status"],
-      msgType: alert["cap:msgType"],
-      scope: alert["cap:scope"],
-      event: info["cap:event"],
-      urgency: info["cap:urgency"],
-      severity: info["cap:severity"],
-      certainty: info["cap:certainty"],
-      effective: info["cap:effective"],
-      expires: info["cap:expires"],
-      headline: info["cap:headline"],
-      instruction: info["cap:instruction"]
-    };
+          // Return a single object that merges
+          // the doc fields + the CAP fields
+          return {
+            _id: doc._id,           
+            title: doc.title,        
+            link: doc.link,          
+            description: doc.description, 
+            pubDate: doc.pubDate,    
 
-    res.json(structuredAlert); // Send structured alert JSON to frontend
+            // CAP fields
+            identifier: capAlert["cap:identifier"],
+            sender: capAlert["cap:sender"],
+            sent: capAlert["cap:sent"],
+            status: capAlert["cap:status"],
+            msgType: capAlert["cap:msgType"],
+            scope: capAlert["cap:scope"],
+            event: info["cap:event"],
+            urgency: info["cap:urgency"],
+            severity: info["cap:severity"],
+            certainty: info["cap:certainty"],
+            effective: info["cap:effective"],
+            expires: info["cap:expires"],
+            headline: info["cap:headline"],
+            instruction: info["cap:instruction"],
+          };
+        } catch (fetchError) {
+          console.error(`Error fetching/parsing CAP from link: ${doc.link}`, fetchError);
+          // Return a fallback object if fetching fails
+          return {
+            _id: doc._id,
+            title: doc.title,
+            link: doc.link,
+            description: doc.description,
+            pubDate: doc.pubDate,
+            // Return blank or partial CAP fields
+            identifier: "",
+            sender: "",
+            sent: "",
+            status: "",
+            msgType: "",
+            scope: "",
+            event: doc.title, // fallback to the doc's title if you want
+            urgency: "",
+            severity: "",
+            certainty: "",
+            effective: "",
+            expires: "",
+            headline: "",
+            instruction: "",
+          };
+        }
+      })
+    );
+
+    // 3) Respond with the enriched alerts
+    res.json(enrichedAlerts);
   } catch (error) {
-    console.error("Error fetching CAP data:", error);
-    res.status(500).json({ error: "Failed to fetch CAP alert data" });
+    console.error("Error fetching alerts:", error);
+    res.status(500).json({ error: "Failed to fetch alerts" });
   }
 };
