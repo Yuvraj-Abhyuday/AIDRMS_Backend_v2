@@ -1,32 +1,99 @@
 // authController.ts
 import { Request, Response } from "express";
-import { Pool } from "pg";
+import { createUser, checkUserExists } from "../models/user.model";
+import { pool } from '../config/database';
 
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : undefined,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  ssl: {
-    rejectUnauthorized: false
+// For Signup
+export const signup = async (req: Request, res: Response): Promise<void> => {
+  const { name, number, email, designation, password } = req.body;
+
+  if (!name || !email || !number || !designation || !password) {
+    res.status(400).json({ message: "All fields are required" });
+    return;
   }
-});
 
-export const signUpProcess = async (req: Request, res: Response) => {
   try {
-    const { name, number, email, designation, password } = req.body;
+    await pool.query('BEGIN');
 
-    const result = await pool.query(
-      "INSERT INTO users (name, number, email,designation, password) VALUES ($1, $2, $3, $4, $5) RETURNING id",
-      [name, number, email, designation, password]
-    );
+    // Check if user already exists
+    const userExists = await checkUserExists(email);
+    if (userExists.rows.length > 0) {
+      await pool.query('ROLLBACK');
+      res.status(400).json({
+        message: "Email already exists"
+      });
+      return;
+    }
+
+    // Insert the user into the database
+    await createUser(name, number, email, designation, password);
+    await pool.query('COMMIT');
+
     res.status(201).json({
-      message: "User registered successfully!",
-      userId: result.rows[0].id,
+      message: "User registered successfully"
     });
+    return;
+
+  } catch (err: any) {
+    await pool.query('ROLLBACK');
+    console.error("Database error:", err.message);
+
+    res.status(500).json({
+      message: "Something went wrong",
+      error: err.message
+    });
+    return;
+  }
+};
+
+// For Login
+export const login = async (req: Request, res: Response): Promise<void> => {
+  const { number, password } = req.body;
+
+  if (!number || !password) {
+    res.status(400).json({
+      message: "Number and Password are required"
+    });
+    return;
+  }
+
+  try {
+    await pool.query('SELECT 1');
   } catch (error) {
-    console.error("Error registering user:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Database is disconnected", error);
+    res.status(500).json({
+      message: "Database connection lost"
+    });
+    return;
+  }
+
+  try {
+    const findUserQuery = 'SELECT * FROM users WHERE number = $1';
+    const result = await pool.query(findUserQuery, [number]);
+
+    if (result.rows.length === 0) {
+      res.status(404).json({
+        message: "User not found"
+      });
+      return;
+    }
+
+    const user = result.rows[0];
+    if (user.password !== password) {
+      res.status(401).json({
+        message: "Invalid Credentials"
+      });
+      return;
+    }
+
+    console.log("Login Successful");
+    res.status(200).json({
+      message: "Login Successful"
+    });
+  } catch (err: any) {
+    console.error("Database error", (err as Error).message);
+    res.status(500).json({
+      message: "Something went wrong"
+    });
   }
 };
