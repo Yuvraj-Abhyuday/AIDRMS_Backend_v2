@@ -1,14 +1,10 @@
+// authRoutes.ts
 import express from "express";
-import {
-  loginProcess,
-  signUpProcess,
-  forgetPassword,
-} from "../controller/auth.controller";
+import { signUpProcess } from "../controller/auth.controller";
 
 const router = express.Router();
 
-router.post("/login", loginProcess);
+// POST endpoint for user signup
 router.post("/signup", signUpProcess);
-router.post("/forgot-password", forgetPassword); // Fixed route
 
 export default router;

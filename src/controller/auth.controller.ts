@@ -1,16 +1,32 @@
+// authController.ts
 import { Request, Response } from "express";
+import { Pool } from "pg";
 
-// Login process
-export const loginProcess = (req: Request, res: Response) => {
-  res.json({ message: "User logged in successfully!" });
-};
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : undefined,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
-// Signup process
-export const signUpProcess = (req: Request, res: Response) => {
-  res.json({ message: "User registered successfully!" });
-};
+export const signUpProcess = async (req: Request, res: Response) => {
+  try {
+    const { name, number, email, designation, password } = req.body;
 
-// Forgot password process
-export const forgetPassword = (req: Request, res: Response) => {
-  res.json({ message: "Password reset link sent to email!" });
+    const result = await pool.query(
+      "INSERT INTO users (name, number, email,designation, password) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+      [name, number, email, designation, password]
+    );
+    res.status(201).json({
+      message: "User registered successfully!",
+      userId: result.rows[0].id,
+    });
+  } catch (error) {
+    console.error("Error registering user:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
