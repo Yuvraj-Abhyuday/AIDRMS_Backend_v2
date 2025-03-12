@@ -16,11 +16,11 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     await pool.query('BEGIN');
 
     // Check if user already exists
-    const userExists = await checkUserExists(email);
+    const userExists = await checkUserExists(number);
     if (userExists.rows.length > 0) {
       await pool.query('ROLLBACK');
       res.status(400).json({
-        message: "Email already exists"
+        message: "Number already exists"
       });
       return;
     }
