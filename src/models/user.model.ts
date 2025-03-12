@@ -9,8 +9,3 @@ export const checkUserExists = async (number: string) => {
     const check_query = 'SELECT * FROM users WHERE number = $1';
     return await pool.query(check_query, [number]);
 };
-
-export const findUserByEmail = async (number: string) => {
-    const query = 'SELECT * FROM users WHERE number = $1';
-    return await pool.query(query, [number]);
-};
