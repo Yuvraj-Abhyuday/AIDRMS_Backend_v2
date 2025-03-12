@@ -5,12 +5,7 @@ export const createUser = async (name: string, number: string, email: string, de
     return await pool.query(insert_query, [name, number, email, designation, password]);
 };
 
-export const checkUserExists = async (email: string) => {
-    const check_query = 'SELECT * FROM users WHERE email = $1';
-    return await pool.query(check_query, [email]);
-};
-
-export const findUserByEmail = async (number: string) => {
-    const query = 'SELECT * FROM users WHERE number = $1';
-    return await pool.query(query, [number]);
+export const checkUserExists = async (number: string) => {
+    const check_query = 'SELECT * FROM users WHERE number = $1';
+    return await pool.query(check_query, [number]);
 };

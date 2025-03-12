@@ -68,8 +68,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const findUserQuery = 'SELECT * FROM users WHERE number = $1';
-    const result = await pool.query(findUserQuery, [number]);
+    const result = await pool.query('SELECT * FROM users WHERE number = $1', [number]);
 
     if (result.rows.length === 0) {
       res.status(404).json({
