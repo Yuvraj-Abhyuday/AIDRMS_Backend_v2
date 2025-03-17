@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import router from "./routes/index";
 import bodyParser from "body-parser";
 import authRoutes from "./routes/auth.routes";
+import postSOS from "./routes/sos.routes";
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ app.use(express.json());
 
 app.use("/api", authRoutes);
 app.use("/api", router);
+app.use("/api", postSOS);
 try {
   app.listen(PORT, HOST, () => {
     console.log(`Server running at http://${HOST}:${PORT}/`);
