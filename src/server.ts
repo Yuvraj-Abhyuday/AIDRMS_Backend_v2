@@ -40,7 +40,7 @@ function startScheduledScraping() {
 try {
   app.listen(PORT, HOST, () => {
     console.log(`Server running at http://${HOST}:${PORT}/`);
-    startScheduledScraping();
+    // startScheduledScraping();
   });
 } catch (error) {
   console.error("Error starting server:", error);
