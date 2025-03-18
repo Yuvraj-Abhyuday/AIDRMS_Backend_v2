@@ -5,6 +5,7 @@ import router from "./routes/index";
 import bodyParser from "body-parser";
 import authRoutes from "./routes/auth.routes";
 import { scrapeRSSFeed } from "./service/api_scrapper";
+import postSOS from "./routes/sos.routes";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(express.json());
 // Routes
 app.use("/api", authRoutes);
 app.use("/api", router);
+app.use("/api", postSOS);
 
 // Scheduled Scraping
 function startScheduledScraping() {
@@ -37,6 +39,7 @@ function startScheduledScraping() {
 }
 
 // Start Server
+
 try {
   app.listen(PORT, HOST, () => {
     console.log(`Server running at http://${HOST}:${PORT}/`);
