@@ -3,11 +3,12 @@ import alertRoutes from "./alert.routes";
 
 const router = express.Router();
 
-// Register user routes under /api/users
+// Register alert routes under /api/alerts
 router.use("/alerts", alertRoutes);
 
-// router.use("*", (req, res) => {
-//   res.status(404).json({ message: "Route not found" });
-// });
+// Catch-all for undefined routes (optional)
+router.use("*", (req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
 
 export default router;
