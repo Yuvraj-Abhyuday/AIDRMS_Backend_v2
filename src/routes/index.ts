@@ -8,8 +8,8 @@ const router: Router = express.Router();
 
 // Route registrations
 router.use("/auth", authRoutes);
-router.post("/sos", postSOS);
 router.use("/alerts", alertRoutes);
+router.post("/sos", postSOS);
 
 // 404 handler
 router.all("*", (req: express.Request, res: express.Response) => {
