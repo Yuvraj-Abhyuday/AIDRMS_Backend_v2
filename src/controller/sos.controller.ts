@@ -25,7 +25,7 @@ export const postSOS = async (req: SOSRequest, res: Response): Promise<void> => 
             message: "SOS recorded successfully",
             data: result.rows[0], // Returns the inserted record
         });
-
+        
     } catch (err: any) {
         console.error("Database error:", err.message);
 
