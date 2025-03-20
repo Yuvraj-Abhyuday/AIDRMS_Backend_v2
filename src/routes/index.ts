@@ -1,14 +1,14 @@
 // routes/index.ts
 import express, { Router } from "express";
 import authRoutes from "./auth.routes";
-import postSOS from "./sos.routes";
 import alertRoutes from "./alert.routes";
+import { postSOS } from "../controller/sos.controller";
 
 const router: Router = express.Router();
 
 // Route registrations
 router.use("/auth", authRoutes);
-router.use("/sos", postSOS);
+router.post("/sos", postSOS);
 router.use("/alerts", alertRoutes);
 
 // 404 handler
