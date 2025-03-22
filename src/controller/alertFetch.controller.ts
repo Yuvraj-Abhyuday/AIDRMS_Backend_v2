@@ -37,6 +37,7 @@ export const fetchDataFromCap = async (
       affected_area,
       instruction,
       event,
+      pincode,
       headline,
     } = req.body;
 
@@ -51,6 +52,7 @@ export const fetchDataFromCap = async (
       !affected_area ||
       !instruction ||
       !event ||
+      pincode ||
       !headline
     ) {
       res.status(400).json({ message: "All fields are required" });
