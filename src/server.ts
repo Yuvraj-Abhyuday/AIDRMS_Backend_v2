@@ -5,6 +5,8 @@ import bodyParser from "body-parser";
 import { scrapeRSSFeed } from "./service/api_scrapper";
 import router from "./routes/index";
 import { pool } from "./config/database"; // Import pool to test connection
+import http from "http";
+import { Server } from "socket.io";
 
 // Load environment variables
 dotenv.config();
@@ -13,6 +15,15 @@ const app: Express = express();
 const PORT: number = Number(process.env.PORT) || 3000;
 const HOST: string = "0.0.0.0";
 const INTERVAL_MS: number = 24 * 60 * 60 * 1000; // 24 hours
+
+// HTTP server and initialize (socket.io)
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    methods: ["GET", "POST"],
+  },
+});
 
 // Middleware setup
 app.use(bodyParser.json({ limit: "10mb" }));
@@ -34,6 +45,14 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   });
 });
 
+// WebSocket Connection
+io.on("connection", (socket) => {
+  console.log("Client connected: ", socket.id);
+  socket.on("disconnect", () => {
+    console.log("Client disconnected: ", socket.id);
+  });
+});
+
 // Test database connection
 const testDbConnection = async (): Promise<void> => {
   try {
@@ -44,6 +63,25 @@ const testDbConnection = async (): Promise<void> => {
     throw err; // Let startServer handle the exit
   }
 };
+
+// Listen for PostgreSQL Database Changes
+const listenForDBChanges = async (): Promise<void> => {
+  const client = await pool.connect();
+  await client.query("LISTEN new_data");
+
+  client.on("notification", (msg) => {
+    if(msg.payload) {
+      const newEntry = JSON.parse(msg.payload);
+      console.log("New database entry received: ", newEntry);
+      io.emit("newEntry", newEntry);
+    }
+  });
+
+  client.on("error", (err) => {
+    console.error("PostgreSQL Listener Error: ", err);
+  });
+};
+
 
 // Scheduled scraping
 const startScheduledScraping = async (): Promise<void> => {
@@ -72,6 +110,9 @@ const startServer = async (): Promise<void> => {
 
     // Test DB connection before proceeding
     await testDbConnection();
+
+    // Listen for database changes
+    await listenForDBChanges();
 
     if (process.env.NODE_ENV !== "test") {
       await startScheduledScraping();
