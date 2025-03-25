@@ -10,7 +10,7 @@ const router = express.Router();
 // Trigger scraping manually
 router.post("/store", fetchDataFromCap);
 router.get("/fetch", fetchDataAndStore);
-
+    
 // Retrieve stored alerts
 router.get("/data", getData);
 

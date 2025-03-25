@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import { scrapeRSSFeed } from "./service/api_scrapper";
 import router from "./routes/index";
-import { pool } from "./config/database"; // Import pool to test connection
+import { pool } from "./config/database";
 import http from "http";
 import { Server } from "socket.io";
 
@@ -16,34 +16,46 @@ const PORT: number = Number(process.env.PORT) || 3000;
 const HOST: string = "0.0.0.0";
 const INTERVAL_MS: number = 24 * 60 * 60 * 1000; // 24 hours
 
-// HTTP server and initialize (socket.io)
+// HTTP server and initialize socket.io
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: [
+      process.env.CLIENT_URL || "http://localhost:5173",
+      "http://192.168.0.182:3000",
+    ],
     methods: ["GET", "POST"],
   },
 });
 
 // Middleware setup
 app.use(bodyParser.json({ limit: "10mb" }));
-app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
-  optionsSuccessStatus: 200,
-}));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    optionsSuccessStatus: 200,
+  })
+);
 app.use(express.json({ limit: "10mb" }));
 
 // Routes
 app.use("/api", router);
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error("Unhandled error:", err);
-  res.status(500).json({
-    message: "Internal server error",
-    ...(process.env.NODE_ENV === "development" && { error: err.message }),
-  });
-});
+app.use(
+  (
+    err: Error,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    console.error("Unhandled error:", err);
+    res.status(500).json({
+      message: "Internal server error",
+      ...(process.env.NODE_ENV === "development" && { error: err.message }),
+    });
+  }
+);
 
 // WebSocket Connection
 io.on("connection", (socket) => {
@@ -60,7 +72,7 @@ const testDbConnection = async (): Promise<void> => {
     console.log("Database connected successfully:", res.rows[0]);
   } catch (err) {
     console.error("Database connection failed:", err);
-    throw err; // Let startServer handle the exit
+    throw err;
   }
 };
 
@@ -70,7 +82,7 @@ const listenForDBChanges = async (): Promise<void> => {
   await client.query("LISTEN new_data");
 
   client.on("notification", (msg) => {
-    if(msg.payload) {
+    if (msg.payload) {
       const newEntry = JSON.parse(msg.payload);
       console.log("New database entry received: ", newEntry);
       io.emit("newEntry", newEntry);
@@ -82,7 +94,6 @@ const listenForDBChanges = async (): Promise<void> => {
   });
 };
 
-
 // Scheduled scraping
 const startScheduledScraping = async (): Promise<void> => {
   const runScrape = async () => {
@@ -90,28 +101,28 @@ const startScheduledScraping = async (): Promise<void> => {
       await scrapeRSSFeed();
       console.log(`[${new Date().toISOString()}] Scheduled scrape completed`);
     } catch (err) {
-      console.error(`[${new Date().toISOString()}] Scheduled scrape failed:`, err);
+      console.error(
+        `[${new Date().toISOString()}] Scheduled scrape failed:`,
+        err
+      );
     }
   };
 
-  await runScrape(); // Initial scrape
-  setInterval(runScrape, INTERVAL_MS); // Recurring scrape
+  await runScrape();
+  setInterval(runScrape, INTERVAL_MS);
 };
 
 // Server startup
 const startServer = async (): Promise<void> => {
   try {
     await new Promise<void>((resolve) => {
-      app.listen(PORT, HOST, () => {
+      server.listen(PORT, HOST, () => {
         console.log(`Server running at http://${HOST}:${PORT}/`);
         resolve();
       });
     });
 
-    // Test DB connection before proceeding
     await testDbConnection();
-
-    // Listen for database changes
     await listenForDBChanges();
 
     if (process.env.NODE_ENV !== "test") {
