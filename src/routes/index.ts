@@ -3,13 +3,15 @@ import express, { Router } from "express";
 import authRoutes from "./auth.routes";
 import alertRoutes from "./alert.routes";
 import { postSOS } from "../controller/sos.controller";
+import rssRoutes from "./rss.routes";
 
 const router: Router = express.Router();
 
 // Route registrations
 router.use("/auth", authRoutes);
 router.post("/sos", postSOS);
-router.use("/alerts", alertRoutes);
+router.use("/rss", rssRoutes);
+router.use("/alert", alertRoutes);
 
 // 404 handler
 router.all("*", (req: express.Request, res: express.Response) => {

@@ -12,6 +12,7 @@ export const pool = new Pool({
   ssl: {
     rejectUnauthorized: false, // Allows self-signed certs (RDS uses these)
   },
+  keepAlive: true,
 });
 
 export const testDbConnection = async (): Promise<void> => {
