@@ -20,7 +20,7 @@ export const fetchDataAndStore = async (req: Request, res: Response) => {
   }
 };
 
-// Getting data from Cap  and store data
+// Getting data from CAP and store data
 export const fetchDataFromCap = async (
   req: Request,
   res: Response
@@ -39,23 +39,28 @@ export const fetchDataFromCap = async (
       event,
       pincode,
       headline,
+      created_at, // Added missing field from frontend
     } = req.body;
 
-    if (
-      !identifier ||
-      !sender ||
-      !scope ||
-      !urgency ||
-      !severity ||
-      !certainty ||
-      !expires ||
-      !affected_area ||
-      !instruction ||
-      !event ||
-      pincode ||
-      !headline
-    ) {
-      res.status(400).json({ message: "All fields are required" });
+    // Required fields validation
+    const requiredFields = {
+      identifier,
+      sender,
+      expires,
+      affected_area,
+      instruction,
+      event,
+      headline,
+    };
+
+    const missingFields = Object.entries(requiredFields)
+      .filter(([_, value]) => !value || (typeof value === "string" && !value.trim()))
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+      res.status(400).json({ 
+        message: `Missing required fields: ${missingFields.join(", ")}` 
+      });
       return;
     }
 
@@ -64,35 +69,41 @@ export const fetchDataFromCap = async (
     const queryText = `
       INSERT INTO alerts (
         identifier, sender, scope, urgency, severity, certainty, expires,
-        affected_area, instruction, event, headline, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW());
+        affected_area, instruction, event, pincode, headline, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      RETURNING identifier;
     `;
     const values = [
       identifier,
       sender,
-      scope,
-      urgency,
-      severity,
-      certainty,
+      scope || "Public", // Default value
+      urgency || "Unknown", // Default value
+      severity || "Unknown", // Default value
+      certainty || "Unknown", // Default value
       expires,
       affected_area,
       instruction,
       event,
+      pincode || null, // Allow null for optional field
       headline,
+      created_at || new Date().toISOString(), // Default to current time if not provided
     ];
 
-    await pool.query(queryText, values);
+    const result = await pool.query(queryText, values);
 
     await pool.query("COMMIT");
 
     res.status(201).json({
       message: "Alert submitted successfully",
-      identifier: identifier, // Return identifier instead of id
+      identifier: result.rows[0].identifier,
     });
   } catch (err: any) {
     await pool.query("ROLLBACK");
     console.error("Error submitting CAP alert:", err.message);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ 
+      message: "Internal server error",
+      error: err.message 
+    });
   }
 };
 
