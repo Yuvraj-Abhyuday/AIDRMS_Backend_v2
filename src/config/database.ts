@@ -9,7 +9,10 @@ export const pool = new Pool({
   port: Number(process.env.DB_PORT) || 5432,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  ssl: { rejectUnauthorized: false },
+  ssl: {
+    rejectUnauthorized: false, // Allows self-signed certs (RDS uses these)
+  },
+  keepAlive: true,
 });
 
 // Function to test database connection

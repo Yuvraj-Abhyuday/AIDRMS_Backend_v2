@@ -2,6 +2,7 @@ import express, { Express } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
+import { scrapeRSSFeed } from "./service/scrapper";
 import router from "./routes/index";
 import { pool } from "./config/database";
 import http from "http";
@@ -49,7 +50,27 @@ io.on("connection", (socket) => {
   });
 });
 
+
 // Function to test PostgreSQL connection
+
+// Scheduled scraping
+const startScheduledScraping = async (): Promise<void> => {
+  const runScrape = async () => {
+    try {
+      console.log("Starting scheduled scraping...");
+      await scrapeRSSFeed();
+      console.log(`[${new Date().toISOString()}] Scheduled scrape completed`);
+    } catch (err) {
+      console.error(`[${new Date().toISOString()}] Scheduled scrape failed:`, err);
+    }
+  };
+
+  await runScrape(); // Initial scrape
+  setInterval(runScrape, INTERVAL_MS); // Recurring scrape
+};
+
+// Database connection test
+
 const testDbConnection = async (): Promise<void> => {
   try {
     const res = await pool.query("SELECT NOW()");
@@ -57,6 +78,7 @@ const testDbConnection = async (): Promise<void> => {
   } catch (err) {
     console.error("❌ Database connection failed:", err);
     process.exit(1);
+
   }
 };
 
@@ -104,6 +126,8 @@ const startServer = async (): Promise<void> => {
 
     await testDbConnection();
     await listenForDBChanges();
+    // Start scraping
+    await startScheduledScraping();
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);
