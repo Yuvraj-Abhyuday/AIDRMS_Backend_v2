@@ -12,8 +12,9 @@ const router: Router = express.Router();
 router.use("/auth", authRoutes);
 router.post("/sos", postSOS);
 router.use("/rss", rssRoutes);
-router.use("/alert", alertRoutes);
 router.use("/processAlert", rssalert);
+router.use("/alerts", alertRoutes);
+
 
 // 404 handler
 router.all("*", (req: express.Request, res: express.Response) => {
