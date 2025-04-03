@@ -127,8 +127,7 @@ const startServer = async (): Promise<void> => {
     await testDbConnection();
     await listenForDBChanges();
     // Start scraping
-    // await startScheduledScraping();
-
+    await startScheduledScraping();
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);

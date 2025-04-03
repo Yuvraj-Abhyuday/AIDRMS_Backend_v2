@@ -4,7 +4,6 @@ import authRoutes from "./auth.routes";
 import alertRoutes from "./alert.routes";
 import { postSOS } from "../controller/sos.controller";
 import rssRoutes from "./rss.routes";
-import rssalert from "./rssalert.routes";
 
 const router: Router = express.Router();
 
@@ -12,9 +11,7 @@ const router: Router = express.Router();
 router.use("/auth", authRoutes);
 router.post("/sos", postSOS);
 router.use("/rss", rssRoutes);
-router.use("/processAlert", rssalert);
 router.use("/alerts", alertRoutes);
-
 
 // 404 handler
 router.all("*", (req: express.Request, res: express.Response) => {
