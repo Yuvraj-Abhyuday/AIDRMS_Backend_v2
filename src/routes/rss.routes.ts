@@ -3,7 +3,7 @@ import { postAlert, getAllAlerts } from "../controller/rss.controller";
 
 const router = express.Router();
 
+router.get("/getrss", getAllAlerts);
 router.post("/", postAlert);
-router.get("/", getAllAlerts);
 
 export default router;
