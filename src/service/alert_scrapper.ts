@@ -13,7 +13,7 @@ const RETRY_DELAY = 3000;
 
 async function fetchData(link: string, retries = 0): Promise<any> {
     try {
-        console.log(`[Scraper] Fetching data from: ${link} (Attemp ${retries + 1})`);
+        console.log(`[Scraper] Fetching data from: ${link} (Attempt ${retries + 1})`);
         const response = await axios.get(link, { timeout: 3000 });
         const xmlData = response.data;
 
@@ -39,34 +39,64 @@ async function fetchData(link: string, retries = 0): Promise<any> {
  * Scrape alert data from the RSS link.
  */
 export async function scrapeAlert(rss_link: string) {
-    console.log(`[Scraper] Initialing scrape for: ${rss_link}`);
+    console.log(`[Scraper] Initiating scrape for: ${rss_link}`);
 
     const scrapedData = await fetchData(rss_link);
-    // console.log(scrapedData)
-    if(!scrapedData) {
+    if (!scrapedData) {
         console.warn(`[Scraper] Failed to scrape data from: ${rss_link}`);
         return null;
     }
 
-    // Extract necessary fields from the scraped XML data
-    const alertInfo = scrapedData["cap:alert"] || {};
-    const info = alertInfo["cap:info"] || {};
-    const area = info["cap:area"] || {};
+    try {
+        const alertInfo = scrapedData["cap:alert"] || {};
+        const info = Array.isArray(alertInfo["cap:info"])
+            ? alertInfo["cap:info"][0]
+            : alertInfo["cap:info"] || {};
+        const area = Array.isArray(info["cap:area"])
+            ? info["cap:area"][0]
+            : info["cap:area"] || {};
 
-    // console.log(area["cap:polygon"]);
-    return {
-        identifier: alertInfo["cap:identifier"] || null,
-        sender: alertInfo["cap:sender"] || null,
-        scope: alertInfo["cap:scope"] || null,
-        urgency: info["cap:urgency"] || null,
-        severity: info["cap:severity"] || null,
-        certainty: info["cap:certainty"] || null,
-        expires: info["cap:expires"] || null,
-        affected_areas: area["cap:areaDesc"] || null,
-        instruction: info["cap:instruction"] || null,
-        event: info["cap:event"] || null,
-        headline: info["cap:headline"] || null,
-        created_at: alertInfo["cap:sent"] || null,
-        polygon: area["cap:polygon"] || null,
-    };
+        // Parse polygon into array of [lat, lon] pairs
+        let polygon = null;
+        const polygonString = area["cap:polygon"];
+        if (polygonString && typeof polygonString === "string") {
+            try {
+                // Remove any surrounding quotes or braces if present
+                const cleanString = polygonString.replace(/^"|{/, "").replace(/}"$/, "");
+                // Split by space and convert to [lat, lon] pairs
+                polygon = cleanString
+                    .trim()
+                    .split(" ")
+                    .map((coordPair: string) => {
+                        const [lat, lon] = coordPair.split(",").map(Number);
+                        if (isNaN(lat) || isNaN(lon)) {
+                            throw new Error(`Invalid coordinate pair: ${coordPair}`);
+                        }
+                        return [lat, lon];
+                    });
+            } catch (error:any) {
+                console.error(`[Scraper] Failed to parse polygon: ${error.message}`);
+                polygon = null;
+            }
+        }
+
+        return {
+            identifier: alertInfo["cap:identifier"] || null,
+            sender: alertInfo["cap:sender"] || null,
+            scope: alertInfo["cap:scope"] || null,
+            urgency: info["cap:urgency"] || null,
+            severity: info["cap:severity"] || null,
+            certainty: info["cap:certainty"] || null,
+            expires: info["cap:expires"] || null,
+            affected_areas: area["cap:areaDesc"] || null,
+            instruction: info["cap:instruction"] || null,
+            event: info["cap:event"] || null,
+            headline: info["cap:headline"] || null,
+            created_at: alertInfo["cap:sent"] || null,
+            polygon: polygon
+        };
+    } catch (error:any) {
+        console.error(`[Scraper] Error processing scraped data: ${error.message}`);
+        return null;
+    }
 }
