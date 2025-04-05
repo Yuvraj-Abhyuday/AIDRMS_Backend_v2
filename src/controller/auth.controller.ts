@@ -80,7 +80,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     console.log("Login Successful");
-    res.status(200).json({ message: "Login Successful" });
+    res.status(200).json({ message: "Login Successful", user: user });
   } catch (err: any) {
     console.error("Database error", (err as Error).message);
     res.status(500).json({ message: "Something went wrong" });
